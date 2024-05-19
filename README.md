@@ -29,3 +29,15 @@ trainer.train()
 ```
 trainer.test(resume_model_path="../runs/dsptcls/covid19randmnv2202405151239/ckpt_epoch149.pt")
 ```
+
+# Result
+
+![](validloss_219.png)
+
+# Reference
+1. MobileNetV2
+2. CoughVID
+3. [Data Cleaning from Kaggle](https://www.kaggle.com/code/nasrulhakim86/covid-19-screening-from-audio-part-2/notebook)
+4. [Data Cleaning from wavencoder](https://github.com/shangeth/wavencoder)
+
+end.
