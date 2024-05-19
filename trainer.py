@@ -8,6 +8,8 @@ import os
 import sys
 from datetime import datetime
 import random
+
+from sklearn import metrics
 from torch import optim
 from tqdm import tqdm
 import torch
@@ -221,6 +223,53 @@ class TrainerSet(object):
         print('\tMax validation accuracy: %.4f %%' % (np.max(history['val_accuracy']) * 100))
         print('\tMin validation loss: %.5f' % np.min(history['val_loss']))
 
+    def load_ckpt(self, resume_model_path):
+        if self.model is None:
+            self.__setup_model()
+        state_dict = torch.load(resume_model_path)
+        self.model.load_state_dict(state_dict)
+
+    def test(self, resume_model_path):
+        self.load_ckpt(resume_model_path=resume_model_path)
+        self.__setup_dataset()
+        self.__get_fold(fold_k=0)
+
+        running_loss = torch.tensor(0.0).to(self.device)
+        running_acc = torch.tensor(0.0).to(self.device)
+
+        self.model.eval()
+
+        batch_size = torch.tensor(self.train_loader.batch_size).to(self.device)
+        # model evaluation - validation data
+        for step, batch in enumerate(self.train_loader):
+            X_batch = batch['spectrogram'].to(torch.float32).to(self.device)
+            y_batch = batch['label']
+
+            # outputs = model.predict(X_batch)
+            with torch.no_grad():
+                outputs = self.model(X_batch)
+
+            # # get batch loss
+            # loss = self.model.criterion(outputs, y_batch)
+            # running_loss = running_loss + loss
+
+            # calculate batch accuracy
+            # print(y_batch)
+            predictions = torch.argmax(outputs, dim=1)
+
+            predictions = predictions.data.cpu().numpy()
+            y_batch = y_batch.data.cpu().numpy()
+            # print(predictions)
+            # print(y_batch)
+
+            precision = metrics.precision_score(y_batch, predictions)
+            recall = metrics.recall_score(y_batch, predictions)
+            correct = metrics.accuracy_score(y_batch, predictions)
+            print(f"precision: {precision:.5f}, recall: {recall:.5f}, accuracy: {correct:.5f}")
+
+            conf_mat = metrics.confusion_matrix(predictions, y_batch)
+            print(conf_mat)
+
 
 if __name__ == '__main__':
     # train
@@ -246,5 +295,4 @@ if __name__ == '__main__':
     # trainer.test_run()
     trainer.train()
 
-    # trainer.load_ckpt(resume_model_path="../runs/dsptcls/covid19randmnv2202405151239/ckpt_epoch149.pt")
     # trainer.test(resume_model_path="../runs/dsptcls/covid19randmnv2202405151239/ckpt_epoch149.pt")
